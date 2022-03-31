@@ -124,6 +124,7 @@ rm -f jars/flatbuffers-java-1.9.0.jar ./
 #download protobuf-java-3.13.0.jar and flatbuffers-java-1.12.0.jar from maven
 cp protobuf-java-3.13.0.jar jars/
 cp flatbuffers-java-1.12.0.jar jars/
+cp gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar jars/
 ```
 
 #### Data preparation
@@ -149,19 +150,13 @@ cd spark-3.1.1-bin-2.8.5
 ./sbin/start-thriftserver.sh \
   --master local[3] \
   --driver-memory 10g \
-  --conf spark.driver.extraJavaOptions="-XX:+UseG1GC -XX:G1HeapRegionSize=32M -XX:+ExplicitGCInvokesConcurrent -XX:+ExitOnOutOfMemoryError -XX:InitiatingHeapOccupancyPercent=45" \
-  --conf spark.driver.memoryOverhead=6G \
   --conf spark.serializer=org.apache.spark.serializer.JavaSerializer \
-  --conf spark.memory.fraction=0.3 \
-  --conf spark.memory.storageFraction=0.3 \
   --conf spark.sql.sources.ignoreDataLocality=true \
   --conf spark.default.parallelism=1 \
   --conf spark.sql.shuffle.partitions=1 \
   --conf spark.sql.files.minPartitionNum=1 \
   --conf spark.sql.files.maxPartitionBytes=1073741824 \
   --conf spark.sql.adaptive.enabled=false \
-  --conf spark.sql.parquet.filterPushdown=true \
-  --conf spark.sql.parquet.enableVectorizedReader=true \
   --conf spark.locality.wait=0 \
   --conf spark.locality.wait.node=0 \
   --conf spark.locality.wait.process=0 \
@@ -234,34 +229,151 @@ bin/beeline -u jdbc:hive2://localhost:10000/ -n root
     ![ClickHouse-CLion-Toolchains](./image/ClickHouse/Gluten-ClickHouse-Backend-Q6-DAG.png)
 
 
-### Benchmark with TPC-H Q6 on Gluten with ClickHouse backend
+### Benchmark with TPC-H 100 Q6 on Gluten with ClickHouse backend
 
+This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
 
+| Node Role | EC2 Type | Instances Count | Resources | AMI |
+| ---------- | ----------- | ------------- | ------------- | ------------- |
+| Master | m5.4xlarge | 1  | 16 cores 64G memory per node | ubuntu-focal-20.04 |
+| Worker | m5.4xlarge | 1  | 16 cores 64G memory per node | ubuntu-focal-20.04 |
 
 
 #### Deploying on Cloud
 
+- Tested on Spark Standalone cluster, its resources are shown below:
+
+    |  | CPU cores | Memory | Instances Count |
+    | ---------- | ----------- | ------------- | ------------- |
+    | Spark Worker | 15 | 60G  | 6 |
+
+- Deploy gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar
+
+```
+    #deploy 'gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar' to every node, and then
+    cp gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar /path_to_spark/jars/
+```
+
+- Deploy ClickHouse library
+
+    Deploy ClickHouse library 'libch.so' to every worker node.
 
 
+##### Deploying JuiceFS
 
+- JuiceFS uses Redis to save metadata, install redis firstly:
+
+```
+    wget https://download.redis.io/releases/redis-6.0.14.tar.gz
+    sudo apt install build-essential
+    tar -zxvf redis-6.0.14.tar.gz
+    cd redis-6.0.14
+    make
+    make install PREFIX=/home/ubuntu/redis6
+    cd ..
+    rm -rf redis-6.0.14
+
+    #start redis server
+    /home/ubuntu/redis6/bin/redis-server /home/ubuntu/redis6/redis.conf
+
+```
+- Use JuiceFS to format a S3 bucket and mount a volumn on every node
+
+    Please refer to [The-JuiceFS-Command-Reference](https://juicefs.com/docs/community/command_reference)
+
+```
+    wget https://github.com/juicedata/juicefs/releases/download/v0.17.5/juicefs-0.17.5-linux-amd64.tar.gz
+    tar -zxvf juicefs-0.17.5-linux-amd64.tar.gz
+    
+    ./juicefs format --block-size 4096 --storage s3 --bucket https://s3.cn-northwest-1.amazonaws.com.cn/s3-gluten-tpch100/ --access-key "XXXXXXXX" --secret-key "XXXXXXXX" redis://:123456@master-ip:6379/1 gluten-tables
+
+    #mount a volumn on every node
+    ./juicefs mount -d --no-usage-report --no-syslog --attr-cache 7200 --entry-cache 7200 --dir-entry-cache 7200 --buffer-size 500 --prefetch 1 --open-cache 86400 --log /home/ubuntu/juicefs-logs/mount1.log --cache-dir /home/ubuntu/juicefs-cache/ --cache-size 102400 redis://:123456@master-ip:6379/1 /home/ubuntu/gluten/gluten_table
+    #create a directory for lineitem table path
+    mkdir -p /home/ubuntu/gluten/gluten_table/lineitem
+
+```
+
+#### Preparation
+
+Please refer to [Data-preparation](#data-preparation) to generate MergeTree parts data to the lineitem table path: /home/ubuntu/gluten/gluten_table/lineitem.
+
+#### Running Spark Thriftserver
+
+```
+cd /home/ubuntu/spark-3.1.1-bin-2.8.5/
+./sbin/start-thriftserver.sh \
+  --master spark://master-ip:7070 --deploy-mode client \
+  --driver-memory 16g --driver-cores 4 \
+  --total-executor-cores 90 --executor-memory 60g --executor-cores 15 \
+  --conf spark.driver.memoryOverhead=8G \
+  --conf spark.default.parallelism=90 \
+  --conf spark.sql.shuffle.partitions=1 \
+  --conf spark.sql.files.minPartitionNum=1 \
+  --conf spark.sql.files.maxPartitionBytes=536870912 \
+  --conf spark.sql.adaptive.enabled=false \
+  --conf spark.sql.parquet.filterPushdown=true \
+  --conf spark.sql.parquet.enableVectorizedReader=true \
+  --conf spark.locality.wait=0 \
+  --conf spark.locality.wait.node=0 \
+  --conf spark.locality.wait.process=0 \
+  --conf spark.sql.columnVector.offheap.enabled=true \
+  --conf spark.memory.offHeap.enabled=true \
+  --conf spark.memory.offHeap.size=42949672960 \
+  --conf spark.serializer=org.apache.spark.serializer.JavaSerializer \
+  --conf spark.sql.sources.ignoreDataLocality=true \
+  --conf spark.plugins=com.intel.oap.GazellePlugin \
+  --conf spark.oap.sql.columnar.columnartorow=false \
+  --conf spark.oap.sql.columnar.loadnative=true \
+  --conf spark.oap.sql.columnar.libpath=/path_clickhouse_library/libch.so \
+  --conf spark.oap.sql.columnar.iterator=false \
+  --conf spark.oap.sql.columnar.loadarrow=false \
+  --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.execution.datasources.v2.clickhouse.ClickHouseSparkCatalog \
+  --conf spark.databricks.delta.maxSnapshotLineageLength=20 \
+  --conf spark.databricks.delta.snapshotPartitions=1 \
+  --conf spark.databricks.delta.properties.defaults.checkpointInterval=5 \
+  --conf spark.databricks.delta.stalenessLimit=3600000
+```
+
+#### Testing TPC-H Q6 with JMeter
+
+- Create a lineitem table using clickhouse datasource
+
+```
+    DROP TABLE IF EXISTS lineitem;
+    CREATE TABLE IF NOT EXISTS lineitem (
+     l_orderkey      bigint,
+     l_partkey       bigint,
+     l_suppkey       bigint,
+     l_linenumber    bigint,
+     l_quantity      double,
+     l_extendedprice double,
+     l_discount      double,
+     l_tax           double,
+     l_returnflag    string,
+     l_linestatus    string,
+     l_shipdate      date,
+     l_commitdate    date,
+     l_receiptdate   date,
+     l_shipinstruct  string,
+     l_shipmode      string,
+     l_comment       string)
+     USING clickhouse
+     TBLPROPERTIES (engine='MergeTree'
+                    )
+     LOCATION 'file:///home/ubuntu/gluten/gluten_table/lineitem';
+```
+
+- Run TPC-H Q6 test with JMeter
+    1. Run TPC-H Q6 test 100 times in the first round;
+    2. Run TPC-H Q6 test 1000 times in the second round;
 
 #### Performance
 
+The performance of Gluten + ClickHouse backend increases by **about 1/3**.
 
-Below table shows the TPC-H Q6 Performance in a multiple-thread test (--num-executors 6 --executor-cores 6) for Velox and vanilla Spark.
-Both Parquet and ORC datasets are sf1024.
-
-| TPC-H Q6 Performance | Velox (ORC) | Vanilla Spark (Parquet) | Vanilla Spark (ORC) |
-| ---------- | ----------- | ------------- | ------------- |
-| Time(s) | 13.6 | 21.6  | 34.9 |
-
-
-
-
-
-
-
-
-
-
+|  | 70% | 80% | 90% | 99% | Avg |
+| ---------- | ----------- | ------------- | ------------- | ------------- | ------------- |
+| Spark + Parquet | 590ms | 592ms  | 597ms | 609ms | 588ms |
+| Spark + Gluten + ClickHouse backend | 402ms | 405ms  | 409ms | 425ms | 399ms |
 
