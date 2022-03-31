@@ -114,7 +114,7 @@ The prerequisites are the same as the one above mentioned. Compile Gluten with C
 
 ### Testing on local
 
-##### Deploying Spark 3.1.1
+#### Deploying Spark 3.1.1
 ```
 tar -zxvf spark-3.1.1-bin-2.8.5.tgz
 cd spark-3.1.1-bin-2.8.5
@@ -126,7 +126,7 @@ cp protobuf-java-3.13.0.jar jars/
 cp flatbuffers-java-1.12.0.jar jars/
 ```
 
-##### Data preparation
+#### Data preparation
 Currently, the feature of writing ClickHouse MergeTree parts by Spark is developing, so it needs to use command 'clickhouse-local' to generate MergeTree parts data manually. We provide a python script to call the command 'clickhouse-local' to convert parquet data to MergeTree parts:
 ```
 #install ClickHouse community version
@@ -140,10 +140,10 @@ sudo apt-get install -y clickhouse-server clickhouse-client
 mkdir -p /path_clickhouse_database/table_path/
 python3 ./parquet_to_mergetree.py --path=/tmp --source=/path_to_parquet_data/tpch-data-sf100/lineitem --dst=/path_clickhouse_database/table_path/lineitem
 ```
-**This python script will convert one parquet data file to one MergeTree parts.**
+##### **This python script will convert one parquet data file to one MergeTree parts.**
 
 
-##### Running Spark Thriftserver on local
+#### Running Spark Thriftserver on local
 ```
 cd spark-3.1.1-bin-2.8.5
 ./sbin/start-thriftserver.sh \
@@ -184,7 +184,7 @@ cd spark-3.1.1-bin-2.8.5
 bin/beeline -u jdbc:hive2://localhost:10000/ -n root
 ```
 
-##### Testing
+#### Testing
 
 - Create a TPC-H lineitem table using ClickHouse DataSource
 
@@ -238,24 +238,15 @@ bin/beeline -u jdbc:hive2://localhost:10000/ -n root
 
 
 
+
 #### Deploying on Cloud
 
 
 
 
-#### Results
-
-
 
 #### Performance
 
-
-
-##### Result
-
-![TPC-H Q6](./image/TPC-H_Q6_DAG.png)
-
-##### Performance
 
 Below table shows the TPC-H Q6 Performance in a multiple-thread test (--num-executors 6 --executor-cores 6) for Velox and vanilla Spark.
 Both Parquet and ORC datasets are sf1024.
