@@ -125,6 +125,9 @@ rm -f jars/flatbuffers-java-1.9.0.jar ./
 cp protobuf-java-3.13.0.jar jars/
 cp flatbuffers-java-1.12.0.jar jars/
 cp gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar jars/
+#download delta-core_2.12-1.0.1.jar
+wget https://repo1.maven.org/maven2/io/delta/delta-core_2.12/1.0.1/delta-core_2.12-1.0.1.jar
+cp delta-core_2.12-1.0.1.jar jars/
 ```
 
 #### Data preparation
@@ -246,6 +249,10 @@ This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
     |  | CPU cores | Memory | Instances Count |
     | ---------- | ----------- | ------------- | ------------- |
     | Spark Worker | 15 | 60G  | 6 |
+
+- Prepare jars
+
+    Refer to [Deploying Spark 3.1.1](#deploying-spark-3.1.1)
 
 - Deploy gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar
 
