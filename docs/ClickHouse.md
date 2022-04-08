@@ -172,6 +172,7 @@ cd spark-3.1.1-bin-2.8.5
   --conf spark.oap.sql.columnar.libpath=/path_to_clickhouse_library/libch.so \
   --conf spark.oap.sql.columnar.iterator=false \
   --conf spark.oap.sql.columnar.loadarrow=false \
+  --conf spark.oap.sql.columnar.hashagg.enablefinal=false \
   --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.execution.datasources.v2.clickhouse.ClickHouseSparkCatalog \
   --conf spark.databricks.delta.maxSnapshotLineageLength=20 \
   --conf spark.databricks.delta.snapshotPartitions=1 \
@@ -335,6 +336,7 @@ cd /home/ubuntu/spark-3.1.1-bin-2.8.5/
   --conf spark.oap.sql.columnar.libpath=/path_clickhouse_library/libch.so \
   --conf spark.oap.sql.columnar.iterator=false \
   --conf spark.oap.sql.columnar.loadarrow=false \
+  --conf spark.oap.sql.columnar.hashagg.enablefinal=false \
   --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.execution.datasources.v2.clickhouse.ClickHouseSparkCatalog \
   --conf spark.databricks.delta.maxSnapshotLineageLength=20 \
   --conf spark.databricks.delta.snapshotPartitions=1 \
