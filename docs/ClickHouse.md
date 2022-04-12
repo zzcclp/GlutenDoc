@@ -46,8 +46,8 @@ In general, we use IDEA for Gluten development and CLion for ClickHouse backend 
 
     ### add these sources into sources.list
     # for 12
-    deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-12 main
-    deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-12 main
+    deb http://apt.llvm.org/focal/ llvm-toolchain-focal main
+    deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal main
 
     sudo apt update
     sudo apt install -y clang-12 lldb-12 lld-12 clang-12-doc llvm-12-doc llvm-12-examples clang-tools-12 libclang-12-dev clang-format-12 libfuzzer-12-dev libc++-12-dev libc++abi-12-dev libllvm-12-ocaml-dev
