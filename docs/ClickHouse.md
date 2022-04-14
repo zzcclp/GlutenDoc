@@ -260,7 +260,7 @@ This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
 
 - Prepare jars
 
-    Refer to [Deploying Spark 3.1.1](#deploying-spark-311)
+    Refer to [Deploy Spark 3.1.1](#deploy-spark-311)
 
 - Deploy gluten-jvm-XXXXX-jar-with-dependencies.jar
 
