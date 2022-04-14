@@ -33,7 +33,7 @@ $ conda create -n oapenv -c conda-forge -c intel -y oap=1.2.0
 
 Dependencies below are required by OAP and all of them are included in OAP Conda package, they will be automatically installed in your cluster when you Conda install OAP. Ensure you have activated environment which you created in the previous steps.
 
-- [Arrow](https://github.com/oap-project/arrow/tree/v4.0.0-oap-1.2.0)
+- [Arrow](https://github.com/oap-project/arrow/tree/arrow-7.0.0-oap)
 - [Plasma](http://arrow.apache.org/blog/2017/08/08/plasma-in-memory-object-store/)
 - [Memkind](https://github.com/memkind/memkind/tree/v1.10.1)
 - [Vmemcache](https://github.com/pmem/vmemcache.git)
@@ -42,7 +42,7 @@ Dependencies below are required by OAP and all of them are included in OAP Conda
 - [OneAPI](https://software.intel.com/content/www/us/en/develop/tools/oneapi.html)
 
 Once above steps finish, you have completed OAP dependencies installation and OAP building.
-You can start to build Gazelle-Jni in this environment.
+You can start to build Gluten in this environment.
 
 #### Extra Steps for Shuffle Remote PMem Extension
 
@@ -56,8 +56,8 @@ Once finished steps above, make sure libraries installed by Conda can be linked 
 spark.executorEnv.LD_LIBRARY_PATH   $HOME/miniconda2/envs/oapenv/lib
 spark.executor.extraLibraryPath     $HOME/miniconda2/envs/oapenv/lib
 spark.driver.extraLibraryPath       $HOME/miniconda2/envs/oapenv/lib
-spark.executor.extraClassPath       $HOME/miniconda2/envs/oapenv/oap_jars/$OAP_FEATURE.jar
-spark.driver.extraClassPath         $HOME/miniconda2/envs/oapenv/oap_jars/$OAP_FEATURE.jar
+spark.executor.extraClassPath       $HOME/miniconda2/envs/oapenv/oap_jars/$GLUTEN_FEATURE.jar
+spark.driver.extraClassPath         $HOME/miniconda2/envs/oapenv/oap_jars/$GLUTEN_FEATURE.jar
 ```
 
 Then you can follow the corresponding feature documents for more details to use them.
