@@ -1,7 +1,7 @@
 ## ClickHouse Backend
 
 ClickHouse is a column-oriented database management system (DBMS) for online analytical processing of queries (OLAP), which supports best in the industry query performance, while significantly reducing storage requirements through its innovative use of columnar storage and compression.
-We port ClickHouse ( based on version **21.9.1.1** ) as a library, called 'libch.so', and Gluten loads this library through JNI as the native engine. In this way, we don't need to  deploy a standalone ClickHouse Cluster, Spark uses Gluten as SparkPlugin to read and write ClickHouse MergeTree data.
+We port ClickHouse ( based on version **21.9** ) as a library, called 'libch.so', and Gluten loads this library through JNI as the native engine. In this way, we don't need to deploy a standalone ClickHouse Cluster, Spark uses Gluten as SparkPlugin to read and write ClickHouse MergeTree data.
 
 ### Architecture
 
@@ -25,7 +25,7 @@ In general, we use IDEA for Gluten development and CLion for ClickHouse backend 
 
 - GCC 9.0 or higher version
 ```
-    sudo apt install gcc-9 g++-9 gcc-10 g++-10 gcc-11 g++-11  
+    sudo apt install gcc-9 g++-9 gcc-10 g++-10 gcc-11 g++-11
 
     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
@@ -58,25 +58,26 @@ In general, we use IDEA for Gluten development and CLion for ClickHouse backend 
     clang --version  # check the version of the clang
 ```
 - cmake 3.20 or higher version ( Please refer to [How-to-Build-ClickHouse-on-Linux](https://clickhouse.com/docs/en/development/build/) )
+- ninja-build 1.8.2
 - Java 8
 - Maven 3.6.3 or higher version
 - Spark 3.1.1
 - Intel Optimized Arrow 7.0.0 ( Please refer to [Intel-Optimized-Arrow-Installation](./ArrowInstallation.md) )
 
 
-#### Setuping Gluten development environment
+#### Setup Gluten development environment
 
 - Clone Gluten code
 ```
-    git clone https://github.com/oap-project/gluten
+    git clone https://github.com/oap-project/gluten.git
 ```
 - Open Gluten code in IDEA
 
-#### Setuping ClickHouse backend development environment
+#### Setup ClickHouse backend development environment
 
 - Clone ClickHouse backend code
 ```
-    git clone -b local_engine_with_columnar_shuffle https://github.com/liuneng1994/ClickHouse.git
+    git clone -b clickhouse_backend https://github.com/Kyligence/ClickHouse.git
 ```
 - Open ClickHouse backend code in CLion
 - Configure the ClickHouse backend project
@@ -99,22 +100,24 @@ In general, we use IDEA for Gluten development and CLion for ClickHouse backend 
     - If it builds with Debug mode successfully, there is a library file called 'libchd.so' in path 'cmake-build-debug/utils/local-engine/'.
     - If it builds with Release mode successfully, there is a library file called 'libch.so' in path 'cmake-build-release/utils/local-engine/'.
 
+### Compile ClickHouse backend
 
-### Compiling Gluten with ClickHouse backend
+
+### Compile Gluten with ClickHouse backend
 
 The prerequisites are the same as the one above mentioned. Compile Gluten with ClickHouse backend through maven:
 ```
-    git clone https://github.com/oap-project/gluten
+    git clone https://github.com/oap-project/gluten.git
     cd gluten/
     export MAVEN_OPTS="-Xmx8g -XX:ReservedCodeCacheSize=2g"
-    mvn clean install -Phadoop-2.7.4 -Pspark-3.1.1 -Dhadoop.version=2.8.5 -Pclickhouse-lib -DskipTests -Dbuild_cpp=ON -Dcpp_tests=OFF -Dbuild_clickhouse_lib=ON -Dbuild_arrow=ON -Dbuild_protobuf=ON -Dbuild_jemalloc=ON -Dcheckstyle.skip
-    ls -al jvm/target/gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar
+    mvn clean install -Phadoop-2.7.4 -Pspark-3.1.1 -Dhadoop.version=2.8.5 -DskipTests -Dbuild_cpp=OFF -Dcpp_tests=OFF -Dbuild_arrow=ON -Dbuild_protobuf=ON -Dbuild_jemalloc=ON -Dcheckstyle.skip
+    ls -al jvm/target/gluten-jvm-XXXXX-jar-with-dependencies.jar
 ```
 
 
-### Testing on local
+### Test on local
 
-#### Deploying Spark 3.1.1
+#### Deploy Spark 3.1.1
 ```
 tar -zxvf spark-3.1.1-bin-2.8.5.tgz
 cd spark-3.1.1-bin-2.8.5
@@ -124,15 +127,17 @@ rm -f jars/flatbuffers-java-1.9.0.jar ./
 #download protobuf-java-3.13.0.jar and flatbuffers-java-1.12.0.jar from maven
 cp protobuf-java-3.13.0.jar jars/
 cp flatbuffers-java-1.12.0.jar jars/
-cp gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar jars/
+cp gluten-jvm-XXXXX-jar-with-dependencies.jar jars/
 #download delta-core_2.12-1.0.1.jar
 wget https://repo1.maven.org/maven2/io/delta/delta-core_2.12/1.0.1/delta-core_2.12-1.0.1.jar
 cp delta-core_2.12-1.0.1.jar jars/
 ```
 
 #### Data preparation
+
 Currently, the feature of writing ClickHouse MergeTree parts by Spark is developing, so it needs to use command 'clickhouse-local' to generate MergeTree parts data manually. We provide a python script to call the command 'clickhouse-local' to convert parquet data to MergeTree parts:
 ```
+
 #install ClickHouse community version
 sudo apt-get install -y apt-transport-https ca-certificates dirmngr
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
@@ -142,12 +147,13 @@ sudo apt-get install -y clickhouse-server clickhouse-client
 
 #generate MergeTree parts
 mkdir -p /path_clickhouse_database/table_path/
-python3 ./parquet_to_mergetree.py --path=/tmp --source=/path_to_parquet_data/tpch-data-sf100/lineitem --dst=/path_clickhouse_database/table_path/lineitem
+python3 /path_to_clickhouse_backend_src/utils/local-engine/tool/parquet_to_mergetree.py --path=/tmp --source=/path_to_parquet_data/tpch-data-sf100/lineitem --dst=/path_clickhouse_database/table_path/lineitem
 ```
+
 ##### **This python script will convert one parquet data file to one MergeTree parts.**
 
 
-#### Running Spark Thriftserver on local
+#### Run Spark Thriftserver on local
 ```
 cd spark-3.1.1-bin-2.8.5
 ./sbin/start-thriftserver.sh \
@@ -166,13 +172,14 @@ cd spark-3.1.1-bin-2.8.5
   --conf spark.sql.columnVector.offheap.enabled=true \
   --conf spark.memory.offHeap.enabled=true \
   --conf spark.memory.offHeap.size=6442450944 \
-  --conf spark.plugins=com.intel.oap.GazellePlugin \
-  --conf spark.oap.sql.columnar.columnartorow=false \
-  --conf spark.oap.sql.columnar.loadnative=true \
-  --conf spark.oap.sql.columnar.libpath=/path_to_clickhouse_library/libch.so \
-  --conf spark.oap.sql.columnar.iterator=false \
-  --conf spark.oap.sql.columnar.loadarrow=false \
-  --conf spark.oap.sql.columnar.hashagg.enablefinal=false \
+  --conf spark.plugins=io.glutenproject.GlutenPlugin \
+  --conf spark.gluten.sql.columnar.columnartorow=false \
+  --conf spark.gluten.sql.columnar.loadnative=true \
+  --conf spark.gluten.sql.columnar.backend.lib=clickhouse \
+  --conf spark.gluten.sql.columnar.libpath=/path_to_clickhouse_library/libch.so \
+  --conf spark.gluten.sql.columnar.iterator=false \
+  --conf spark.gluten.sql.columnar.loadarrow=false \
+  --conf spark.gluten.sql.columnar.hashagg.enablefinal=false \
   --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.execution.datasources.v2.clickhouse.ClickHouseSparkCatalog \
   --conf spark.databricks.delta.maxSnapshotLineageLength=20 \
   --conf spark.databricks.delta.snapshotPartitions=1 \
@@ -183,7 +190,7 @@ cd spark-3.1.1-bin-2.8.5
 bin/beeline -u jdbc:hive2://localhost:10000/ -n root
 ```
 
-#### Testing
+#### Test
 
 - Create a TPC-H lineitem table using ClickHouse DataSource
 
@@ -243,7 +250,7 @@ This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
 | Worker | m5.4xlarge | 1  | 16 cores 64G memory per node | ubuntu-focal-20.04 |
 
 
-#### Deploying on Cloud
+#### Deploy on Cloud
 
 - Tested on Spark Standalone cluster, its resources are shown below:
 
@@ -255,11 +262,11 @@ This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
 
     Refer to [Deploying Spark 3.1.1](#deploying-spark-311)
 
-- Deploy gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar
+- Deploy gluten-jvm-XXXXX-jar-with-dependencies.jar
 
 ```
-    #deploy 'gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar' to every node, and then
-    cp gazelle-jni-jvm-XXXXX-jar-with-dependencies.jar /path_to_spark/jars/
+    #deploy 'gluten-jvm-XXXXX-jar-with-dependencies.jar' to every node, and then
+    cp gluten-jvm-XXXXX-jar-with-dependencies.jar /path_to_spark/jars/
 ```
 
 - Deploy ClickHouse library
@@ -267,7 +274,7 @@ This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
     Deploy ClickHouse library 'libch.so' to every worker node.
 
 
-##### Deploying JuiceFS
+##### Deploy JuiceFS
 
 - JuiceFS uses Redis to save metadata, install redis firstly:
 
@@ -306,7 +313,7 @@ This benchmark is tested on AWS EC2 cluster, there are 7 EC2 instances:
 
 Please refer to [Data-preparation](#data-preparation) to generate MergeTree parts data to the lineitem table path: /home/ubuntu/gluten/gluten_table/lineitem.
 
-#### Running Spark Thriftserver
+#### Run Spark Thriftserver
 
 ```
 cd /home/ubuntu/spark-3.1.1-bin-2.8.5/
@@ -330,13 +337,14 @@ cd /home/ubuntu/spark-3.1.1-bin-2.8.5/
   --conf spark.memory.offHeap.size=42949672960 \
   --conf spark.serializer=org.apache.spark.serializer.JavaSerializer \
   --conf spark.sql.sources.ignoreDataLocality=true \
-  --conf spark.plugins=com.intel.oap.GazellePlugin \
-  --conf spark.oap.sql.columnar.columnartorow=false \
-  --conf spark.oap.sql.columnar.loadnative=true \
-  --conf spark.oap.sql.columnar.libpath=/path_clickhouse_library/libch.so \
-  --conf spark.oap.sql.columnar.iterator=false \
-  --conf spark.oap.sql.columnar.loadarrow=false \
-  --conf spark.oap.sql.columnar.hashagg.enablefinal=false \
+  --conf spark.plugins=io.glutenproject.GlutenPlugin \
+  --conf spark.gluten.sql.columnar.columnartorow=false \
+  --conf spark.gluten.sql.columnar.loadnative=true \
+  --conf spark.gluten.sql.columnar.backend.lib=clickhouse \
+  --conf spark.gluten.sql.columnar.libpath=/path_clickhouse_library/libch.so \
+  --conf spark.gluten.sql.columnar.iterator=false \
+  --conf spark.gluten.sql.columnar.loadarrow=false \
+  --conf spark.gluten.sql.columnar.hashagg.enablefinal=false \
   --conf spark.sql.catalog.spark_catalog=org.apache.spark.sql.execution.datasources.v2.clickhouse.ClickHouseSparkCatalog \
   --conf spark.databricks.delta.maxSnapshotLineageLength=20 \
   --conf spark.databricks.delta.snapshotPartitions=1 \
@@ -344,7 +352,7 @@ cd /home/ubuntu/spark-3.1.1-bin-2.8.5/
   --conf spark.databricks.delta.stalenessLimit=3600000
 ```
 
-#### Testing TPC-H Q6 with JMeter
+#### Test TPC-H Q6 with JMeter
 
 - Create a lineitem table using clickhouse datasource
 
